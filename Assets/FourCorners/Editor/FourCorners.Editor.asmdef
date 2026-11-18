@@ -1,0 +1,6 @@
+{
+    "name": "FourCorners.Editor",
+    "rootNamespace": "FourCorners.Editor",
+    "references": ["FourCorners.Runtime", "Unity.InputSystem"],
+    "includePlatforms": ["Editor"]
+}

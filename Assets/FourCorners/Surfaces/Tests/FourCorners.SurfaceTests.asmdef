@@ -1,0 +1,7 @@
+{
+    "name": "FourCorners.SurfaceTests",
+    "rootNamespace": "FourCorners.Tests",
+    "references": ["FourCorners.Runtime"],
+    "optionalUnityReferences": ["TestAssemblies"],
+    "autoReferenced": false
+}

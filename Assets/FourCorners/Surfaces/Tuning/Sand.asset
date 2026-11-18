@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9d33faf23199444a9847de92c3477a8, type: 3}
+  m_Name: Sand
+  m_EditorClassIdentifier: FourCorners.Runtime::FourCorners.SurfaceProfile
+  Kind: 3
+  Grip: 0.79
+  RollingResistance: 0.081
+  DriveScale: 0.82
+  MarkTint: {r: 0.41, g: 0.248, b: 0.135, a: 0.74}
+  SlideTint: {r: 0.32, g: 0.204, b: 0.107, a: 0.78}
+  MarkSpacing: 0.37
+  MarkWidth: 0.34
+  MinimumMarkSlip: 0
+  RollingAudio: {fileID: 8300000, guid: e02a1e237afcd1149a734a1f68336f6a, type: 3}
+  AudioLevel: 0.48
+  SprayTint: {r: 0.84, g: 0.63, b: 0.36, a: 0.37}
+  SprayRate: 19

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9d33faf23199444a9847de92c3477a8, type: 3}
+  m_Name: Asphalt
+  m_EditorClassIdentifier: FourCorners.Runtime::FourCorners.SurfaceProfile
+  Kind: 0
+  Grip: 1.18
+  RollingResistance: 0.016
+  DriveScale: 1
+  MarkTint: {r: 0.065, g: 0.045, b: 0.034, a: 0.57}
+  SlideTint: {r: 0.024, g: 0.02, b: 0.018, a: 0.87}
+  MarkSpacing: 0.35
+  MarkWidth: 0.31
+  MinimumMarkSlip: 2.25
+  RollingAudio: {fileID: 8300000, guid: b5b78967b36f66a4e993e23259c4f3b0, type: 3}
+  AudioLevel: 0.38
+  SprayTint: {r: 0.73, g: 0.69, b: 0.62, a: 0.37}
+  SprayRate: 11

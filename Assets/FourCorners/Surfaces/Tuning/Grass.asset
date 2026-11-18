@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9d33faf23199444a9847de92c3477a8, type: 3}
+  m_Name: Grass
+  m_EditorClassIdentifier: FourCorners.Runtime::FourCorners.SurfaceProfile
+  Kind: 1
+  Grip: 0.92
+  RollingResistance: 0.045
+  DriveScale: 0.92
+  MarkTint: {r: 0.23, g: 0.21, b: 0.088, a: 0.69}
+  SlideTint: {r: 0.2, g: 0.104, b: 0.046, a: 0.88}
+  MarkSpacing: 0.34
+  MarkWidth: 0.35
+  MinimumMarkSlip: 0
+  RollingAudio: {fileID: 8300000, guid: ea9254e43d9d51f4fb3704960a310c87, type: 3}
+  AudioLevel: 0.41
+  SprayTint: {r: 0.42, g: 0.48, b: 0.154, a: 0.89}
+  SprayRate: 16

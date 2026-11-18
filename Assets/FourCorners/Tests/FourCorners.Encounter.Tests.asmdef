@@ -1,0 +1,6 @@
+{
+    "name": "FourCorners.Encounter.Tests",
+    "rootNamespace": "FourCorners.Tests",
+    "references": ["FourCorners.Runtime", "Unity.InputSystem"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

@@ -1,0 +1,5 @@
+{
+    "name": "FourCorners.Runtime",
+    "rootNamespace": "FourCorners",
+    "references": ["Unity.InputSystem"]
+}
