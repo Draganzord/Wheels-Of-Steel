@@ -13,25 +13,31 @@ MonoBehaviour:
   m_Name: TowTruck
   m_EditorClassIdentifier: FourCorners.Runtime::FourCorners.VehicleSettings
   Mass: 2880
-  CenterOfMass: {x: 0, y: -0.08, z: -0.08}
-  AntiRoll: 11200
+  CenterOfMass: {x: 0, y: -0.04, z: -0.08}
+  AntiRoll: 7800
   WreckHeight: 1.72
   WheelRadius: 0.53
-  RestLength: 0.51
-  Extension: 0.18
-  Spring: 57500
-  Damper: 7450
-  DriveForce: 20200
+  RestLength: 0.58
+  Extension: 0.22
+  Spring: 57000
+  Damper: 4800
+  ReboundDamper: 5600
+  DriveForce: 23100
   TopSpeed: 21.5
   ReverseSpeed: 5.8
   FrontDriveBias: 0.3
-  BrakeForce: 28700
-  HandbrakeForce: 5300
-  LowSpeedSteer: 32
-  HighSpeedSteer: 12.5
-  SteerRate: 99
-  LateralStiffness: 2200
-  TireGrip: 1.06
-  HandbrakeRearGrip: 0.66
-  HandbrakeEngageRate: 4.3
-  HandbrakeReleaseRate: 2.9
+  BrakeForce: 32000
+  HandbrakeForce: 6600
+  LowSpeedSteer: 37
+  HighSpeedSteer: 17
+  SteerRate: 175
+  LateralStiffness: 2650
+  TireGrip: 1.02
+  SlidingGrip: 0.82
+  HandbrakeRearGrip: 0.55
+  HandbrakeEngageRate: 6
+  HandbrakeReleaseRate: 6.6
+  GravityScale: 1.42
+  AirLevelStrength: 20
+  AirLevelDamping: 8
+  RecoveryDelay: 1.15

@@ -8,6 +8,7 @@ namespace FourCorners
         public Transform TruckSpawn;
         public Transform[] Loop;
         public Transform[] Shortcut;
+        public Transform[] Ramps = System.Array.Empty<Transform>();
         public BreakableFence Fence;
     }
 }

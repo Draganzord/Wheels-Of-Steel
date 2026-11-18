@@ -58,6 +58,21 @@ namespace FourCorners
             Open(direction, approachSpeed, vehicle.Body);
         }
 
+        public void ApplyBlast(Vector3 center, float radius, float damage)
+        {
+            if (IsBroken)
+                return;
+
+            Vector3 delta = standingBlocker.ClosestPoint(center) - center;
+            float strength = 1 - delta.magnitude / radius;
+            if (strength * damage < 28)
+                return;
+
+            Vector3 normal = transform.forward;
+            Vector3 away = Vector3.Dot(standingBlocker.bounds.center - center, normal) < 0 ? -normal : normal;
+            Open(away, Mathf.Clamp(strength * damage * 0.16f, 6, 16), null);
+        }
+
         private void Open(Vector3 direction, float speed, Rigidbody vehicle)
         {
             IsBroken = true;
@@ -65,8 +80,11 @@ namespace FourCorners
             standingPanels.SetActive(false);
             brokenPosts.SetActive(true);
 
-            float nowForward = Vector3.Dot(vehicle.linearVelocity, direction);
-            vehicle.linearVelocity += direction * Mathf.Max(0, speed * carriedSpeed - nowForward);
+            if (vehicle != null)
+            {
+                float nowForward = Vector3.Dot(vehicle.linearVelocity, direction);
+                vehicle.linearVelocity += direction * Mathf.Max(0, speed * carriedSpeed - nowForward);
+            }
 
             for (int i = 0; i < loosePanels.Length; i++)
                 Throw(loosePanels[i], direction, speed, i, true);

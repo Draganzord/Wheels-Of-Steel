@@ -116,13 +116,6 @@ namespace FourCorners.Editor
             Text(shed, "Shed roof label", "PARTS", new(0, 2.72f, 1.3f), new(90, 0, 90),
                 0.18f, new Color32(236, 220, 173, 255));
 
-            Transform forkPlacard = Group(parent, "Fork direction placard", new(-24.7f, 0, -15.31f));
-            forkPlacard.localRotation = Quaternion.Euler(0, 29, 0);
-            Box(forkPlacard, "Sign upright", new(0, 0.82f, 0), new(0.17f, 1.64f, 0.17f), wood);
-            Box(forkPlacard, "Guide panel", new(0, 1.6f, 0), new(2.8f, 0.86f, 0.12f), signRed);
-            Text(forkPlacard, "Sign text", "CREEK  > ", new(0, 1.6f, -0.069f), Vector3.zero, 0.085f,
-                new Color32(250, 224, 172, 255));
-
             for (int i = 0; i < 3; i++)
                 Box(boundary, "Reflective guard panel", new(35.6f + i * 4.1f, 0.7f, -41.8f),
                     new(0.48f, 0.16f, 0.14f), cream);

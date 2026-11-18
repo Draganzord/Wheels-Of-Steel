@@ -9,16 +9,14 @@ namespace FourCorners
         private const float BlastRadius = 4.7f;
 
         [SerializeField] private GameObject warningLight;
-        private CombatVehicle[] targets;
-        private CombatEffects effects;
+        private SalvageEncounter encounter;
         private float armedAt;
 
         public bool IsArmed => Time.time >= armedAt;
 
-        public void Deploy(CombatVehicle[] vehicles, CombatEffects feedback)
+        public void Deploy(SalvageEncounter session)
         {
-            targets = vehicles;
-            effects = feedback;
+            encounter = session;
             armedAt = Time.time + ArmDelay;
         }
 
@@ -28,7 +26,7 @@ namespace FourCorners
                 return;
 
             warningLight.SetActive(Mathf.Repeat(Time.time, 0.4f) < 0.23f);
-            foreach (CombatVehicle target in targets)
+            foreach (CombatVehicle target in encounter.Participants)
             {
                 if (!target.Destroyed && DistanceTo(target) <= TriggerRadius)
                 {
@@ -40,17 +38,7 @@ namespace FourCorners
 
         private void Detonate()
         {
-            effects.Blast(transform.position + Vector3.up * 0.2f);
-            foreach (CombatVehicle target in targets)
-            {
-                float distance = DistanceTo(target);
-                if (target.Destroyed || distance > BlastRadius)
-                    continue;
-
-                float strength = 1 - distance / BlastRadius;
-                target.Vehicle.Body.AddExplosionForce(4800 * strength, transform.position, BlastRadius, 0.2f, ForceMode.Impulse);
-                target.TakeDamage(37 + 31 * strength);
-            }
+            encounter.Detonate(transform.position + Vector3.up * 0.16f, BlastRadius, 68f, 4800f);
             Destroy(gameObject);
         }
 

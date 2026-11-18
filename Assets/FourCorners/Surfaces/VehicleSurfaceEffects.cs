@@ -49,6 +49,18 @@ namespace FourCorners
             profiles = surfaceProfiles;
         }
 
+        public void EraseTracksNear(Vector3 center, float radius)
+        {
+            tracks?.EraseNear(center, radius);
+            for (int index = 0; index < histories.Length; index++)
+            {
+                Vector3 delta = histories[index].PreviousPoint - center;
+                delta.y = 0;
+                if (delta.sqrMagnitude <= radius * radius)
+                    histories[index].MarkSurface = null;
+            }
+        }
+
         private void Start()
         {
             vehicle = GetComponent<ArcadeVehicle>();
@@ -115,6 +127,7 @@ namespace FourCorners
                 {
                     int splashDrops = Mathf.RoundToInt(Mathf.Lerp(4f, 13f, Mathf.InverseLerp(1.4f, 14f, speed)));
                     EmitSpray(contact, speed, slide, splashDrops, true);
+                    LeaveEntryRipple(contact, speed);
                 }
             }
             else
@@ -179,6 +192,9 @@ namespace FourCorners
                 return;
             }
 
+            Vector3 groundedVelocity = Vector3.ProjectOnPlane(contact.Velocity, normal).normalized;
+            Vector3 tireSide = Vector3.Cross(normal, contact.Forward).normalized;
+            float scrub = Mathf.InverseLerp(0.1f, 0.72f, Mathf.Abs(Vector3.Dot(groundedVelocity, tireSide)));
             while (history.DistanceToNextMark <= distance && distance > 0.001f)
             {
                 float progress = history.DistanceToNextMark / distance;
@@ -187,26 +203,46 @@ namespace FourCorners
                 Color tint = Color.Lerp(surface.MarkTint, surface.SlideTint, slide);
                 float width = surface.MarkWidth * (1f + slide * 0.75f);
                 float length = spacing * (surface.Kind == SurfaceKind.Sand ? 0.97f : 1.17f);
-                if (surface.Kind == SurfaceKind.Sand)
+                float accent = 0f;
+                switch (surface.Kind)
                 {
-                    Color wetTint = new(0.12f, 0.084f, 0.055f, 0.82f);
-                    tint = Color.Lerp(tint, wetTint, history.WetDistance / WetCarryDistance);
-                    if (history.WetDistance > 0f)
-                        WetSandPrintsPlaced++;
-                }
-                if (water)
-                {
-                    length = 1.45f + slide * 0.4f;
-                    width *= 1.25f;
+                    case SurfaceKind.Mud:
+                        accent = scrub;
+                        width *= 1.12f + scrub * 0.42f;
+                        length = spacing * 1.24f;
+                        tint = Color.Lerp(tint, surface.SlideTint, scrub * 0.6f);
+                        break;
+                    case SurfaceKind.Sand:
+                        accent = Mathf.Clamp01(history.WetDistance / WetCarryDistance);
+                        tint = Color.Lerp(tint, surface.WetMarkTint, Mathf.Sqrt(accent));
+                        width *= 1f + 0.16f * accent;
+                        if (accent > 0f)
+                            WetSandPrintsPlaced++;
+                        break;
+                    case SurfaceKind.Water:
+                        length = 1.88f + slide * 0.52f;
+                        width *= 1.35f;
+                        center -= groundedVelocity * 0.34f;
+                        break;
                 }
 
-                tracks.Add(center, stampNormal, travel, new Vector2(width, length), tint, surface.Kind, slide);
+                tracks.Add(center, stampNormal, travel, new Vector2(width, length), tint, surface.Kind, slide, accent);
                 history.DistanceToNextMark += spacing;
             }
 
             history.DistanceToNextMark -= distance;
             history.PreviousPoint = point;
             history.PreviousNormal = normal;
+        }
+
+        private void LeaveEntryRipple(WheelContact contact, float speed)
+        {
+            Vector3 center = contact.Point;
+            center.y = contact.SurfaceHeight + 0.025f;
+            Vector3 heading = Vector3.ProjectOnPlane(contact.Velocity, Vector3.up);
+            float scale = Mathf.Lerp(1.22f, 2.3f, Mathf.InverseLerp(1.4f, 14f, speed));
+            tracks.Add(center, Vector3.up, heading, new Vector2(scale, scale * 1.32f),
+                contact.Surface.SlideTint, SurfaceKind.Water, 0f, 1f);
         }
 
         private void EmitSpray(WheelContact contact, float speed, float slide, int count, bool entry)
@@ -236,7 +272,7 @@ namespace FourCorners
                 var particle = new ParticleSystem.EmitParams
                 {
                     position = origin + lateral * (scatter * 0.12f),
-                    velocity = direction * back + lateral * (scatter * (0.65f + slide)) + Vector3.up * upward,
+                    velocity = direction * back + lateral * (scatter * ((entry ? 1.55f : 0.65f) + slide)) + Vector3.up * upward,
                     startColor = tint,
                     startSize = cloud ? UnityEngine.Random.Range(0.37f, 0.78f) : UnityEngine.Random.Range(0.08f, water ? 0.16f : 0.19f),
                     startLifetime = cloud ? UnityEngine.Random.Range(0.35f, 0.7f) : UnityEngine.Random.Range(0.21f, entry ? 0.83f : 0.45f)

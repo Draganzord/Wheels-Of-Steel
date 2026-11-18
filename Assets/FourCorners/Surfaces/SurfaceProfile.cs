@@ -15,6 +15,8 @@ namespace FourCorners
         [Header("Wheel evidence")]
         public Color MarkTint = new(0.12f, 0.09f, 0.07f, 0.65f);
         public Color SlideTint = new(0.12f, 0.09f, 0.07f, 0.8f);
+        [Tooltip("Color of freshly wet prints on sand after leaving the creek.")]
+        public Color WetMarkTint = new(0.073f, 0.062f, 0.049f, 0.92f);
         [Min(0.1f)] public float MarkSpacing = 0.42f;
         [Min(0.05f)] public float MarkWidth = 0.31f;
         [Min(0f)] public float MinimumMarkSlip;

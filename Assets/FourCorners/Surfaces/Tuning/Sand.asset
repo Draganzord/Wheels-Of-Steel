@@ -18,6 +18,7 @@ MonoBehaviour:
   DriveScale: 0.82
   MarkTint: {r: 0.41, g: 0.248, b: 0.135, a: 0.74}
   SlideTint: {r: 0.32, g: 0.204, b: 0.107, a: 0.78}
+  WetMarkTint: {r: 0.073, g: 0.062, b: 0.049, a: 0.92}
   MarkSpacing: 0.37
   MarkWidth: 0.34
   MinimumMarkSlip: 0

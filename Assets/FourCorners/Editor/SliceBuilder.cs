@@ -43,6 +43,7 @@ namespace FourCorners.Editor
             input.Configure(encounter, AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions"));
             TruckDriver ai = truck.gameObject.AddComponent<TruckDriver>();
             ai.Configure(encounter);
+            ExpandEncounter(encounter, arena, effects);
 
             GameObject cameraObject = new("Yard Camera") { tag = "MainCamera" };
             Camera camera = cameraObject.AddComponent<Camera>();
@@ -68,6 +69,13 @@ namespace FourCorners.Editor
             PlayerSettings.defaultScreenHeight = 810;
             AssetDatabase.SaveAssets();
             Debug.Log($"Four Corners playable scene saved to {ScenePath}.");
+        }
+
+        internal static void ExpandEncounter(SalvageEncounter encounter, ArenaLayout arena, CombatEffects effects)
+        {
+            RocketAuthoring.ConfigureBlastEffects(effects);
+            encounter.ConfigureExpansion(RivalAuthoring.AddRivals(arena, encounter), RocketAuthoring.CreatePrefab(),
+                BlastBarrelAuthoring.AddBarrels(arena.transform, encounter));
         }
 
         [MenuItem("Four Corners/Build Windows Player")]
@@ -178,7 +186,7 @@ namespace FourCorners.Editor
             return part;
         }
 
-        private static Material MakeMaterial(string name, string shaderName, Color color)
+        internal static Material MakeMaterial(string name, string shaderName, Color color)
         {
             string path = $"{Generated}/{name}.mat";
             Shader shader = Shader.Find(shaderName);

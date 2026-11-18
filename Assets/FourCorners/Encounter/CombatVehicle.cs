@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace FourCorners
@@ -18,11 +19,14 @@ namespace FourCorners
         public float ArmorFraction => Armor / maxArmor;
         public bool Destroyed => Armor <= 0;
         public bool DamageEnabled { get; set; } = true;
+        public event Action<CombatVehicle> Wrecked;
 
-        public void Configure(float armor, Vector3 muzzlePosition)
+        public void Configure(float armor, Vector3 muzzlePosition, float interval = 0.145f, float damage = 9f)
         {
             maxArmor = armor;
             muzzle = muzzlePosition;
+            shotInterval = interval;
+            gunDamage = damage;
         }
 
         private void Awake()
@@ -31,7 +35,7 @@ namespace FourCorners
             Armor = maxArmor;
         }
 
-        public bool TryFire(CombatEffects effects)
+        public bool TryFire(CombatEffects effects, CombatVehicle allowedTarget = null)
         {
             if (Destroyed || Time.time < nextShot)
                 return false;
@@ -45,8 +49,10 @@ namespace FourCorners
             {
                 endpoint = hit.point;
                 CombatVehicle target = hit.collider.GetComponentInParent<CombatVehicle>();
-                if (target != null && target != this)
+                if (target != null && target != this && (allowedTarget == null || target == allowedTarget))
                     target.TakeDamage(gunDamage);
+                else if (hit.collider.GetComponentInParent<BlastBarrel>() is BlastBarrel barrel)
+                    barrel.TakeDamage(gunDamage);
             }
 
             effects.Shot(origin, endpoint);
@@ -60,7 +66,10 @@ namespace FourCorners
 
             Armor = Mathf.Max(0, Armor - amount);
             if (Destroyed)
+            {
                 Vehicle.BecomeWreck();
+                Wrecked?.Invoke(this);
+            }
         }
 
         private void OnCollisionEnter(Collision collision)

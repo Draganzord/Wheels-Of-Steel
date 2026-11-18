@@ -19,6 +19,9 @@ namespace FourCorners.Tests
             yield return SceneManager.LoadSceneAsync(SceneName);
             encounter = Object.FindAnyObjectByType<SalvageEncounter>();
             Assert.That(encounter, Is.Not.Null);
+            foreach (CombatVehicle opponent in encounter.Opponents)
+                if (opponent.TryGetComponent(out RivalDriver rival))
+                    rival.enabled = false;
         }
 
         [UnityTest]
@@ -103,6 +106,11 @@ namespace FourCorners.Tests
             truck.TakeDamage(truck.Armor);
             Assert.That(truck.Vehicle.IsWreck, Is.True);
             Assert.That(wreck.linearVelocity.magnitude, Is.EqualTo(speedBefore).Within(0.5f));
+            yield return null;
+            Assert.That(encounter.Result, Is.EqualTo(EncounterResult.Active), "The two rivals still count after the Wrecker falls.");
+            foreach (CombatVehicle opponent in encounter.Opponents)
+                if (opponent != truck)
+                    opponent.TakeDamage(opponent.Armor);
             yield return WaitFixed(190);
             Assert.That(encounter.Result, Is.EqualTo(EncounterResult.Won));
             Assert.That(wreck.linearVelocity.magnitude, Is.LessThan(0.7f));
@@ -128,9 +136,11 @@ namespace FourCorners.Tests
                 yield return new WaitUntil(() => old == null);
                 yield return null;
                 encounter = Object.FindAnyObjectByType<SalvageEncounter>();
-                Assert.That(Object.FindObjectsByType<ArcadeVehicle>(FindObjectsSortMode.None).Length, Is.EqualTo(2));
+                Assert.That(Object.FindObjectsByType<ArcadeVehicle>(FindObjectsSortMode.None).Length, Is.EqualTo(4));
                 Assert.That(encounter.Result, Is.EqualTo(EncounterResult.Active));
+                Assert.That(encounter.OpponentsRemaining, Is.EqualTo(3));
                 Assert.That(encounter.Mines, Is.EqualTo(3));
+                Assert.That(encounter.Rockets, Is.EqualTo(5));
                 Assert.That(encounter.Arena.Fence.IsBroken, Is.False);
                 Assert.That(encounter.Arena.Fence.ActiveDebrisCount, Is.Zero);
                 Assert.That(Object.FindObjectsByType<YardMine>(FindObjectsSortMode.None), Is.Empty);
@@ -173,9 +183,14 @@ namespace FourCorners.Tests
             Mouse mouse = InputSystem.AddDevice<Mouse>();
             try
             {
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D));
                 yield return null;
                 Assert.That(keyboard.wKey.isPressed, Is.True, "The synthetic keyboard event should reach the player.");
+                yield return WaitFixed(10);
+                ArcadeVehicle car = encounter.Player.Vehicle;
+                Assert.That(car.SteeringAngle, Is.GreaterThan(car.Settings.LowSpeedSteer * 0.84f),
+                    "Adding throttle on the keyboard must not reduce the steering command to 71 percent.");
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
                 yield return WaitFixed(32);
                 Assert.That(encounter.Player.Vehicle.Speed, Is.GreaterThan(3));
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState());
@@ -184,6 +199,11 @@ namespace FourCorners.Tests
                 yield return null;
                 Assert.That(encounter.Mines, Is.EqualTo(2));
 
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
+                yield return null;
+                yield return null;
+                Assert.That(encounter.Rockets, Is.EqualTo(4));
+
                 SalvageEncounter old = encounter;
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.R));
                 float deadline = Time.realtimeSinceStartup + 5;
@@ -191,6 +211,7 @@ namespace FourCorners.Tests
                     yield return null;
                 Assert.That(old == null, Is.True, "R should reload the playable scene.");
                 Assert.That(Object.FindAnyObjectByType<SalvageEncounter>().Mines, Is.EqualTo(3));
+                Assert.That(Object.FindAnyObjectByType<SalvageEncounter>().Rockets, Is.EqualTo(5));
             }
             finally
             {

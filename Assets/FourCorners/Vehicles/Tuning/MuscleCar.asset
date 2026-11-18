@@ -13,25 +13,31 @@ MonoBehaviour:
   m_Name: MuscleCar
   m_EditorClassIdentifier: FourCorners.Runtime::FourCorners.VehicleSettings
   Mass: 1280
-  CenterOfMass: {x: 0, y: -0.12, z: -0.12}
-  AntiRoll: 6600
+  CenterOfMass: {x: 0, y: -0.045, z: -0.12}
+  AntiRoll: 3600
   WreckHeight: 1.27
   WheelRadius: 0.4
-  RestLength: 0.44
-  Extension: 0.15
-  Spring: 33000
-  Damper: 4150
-  DriveForce: 12300
+  RestLength: 0.51
+  Extension: 0.2
+  Spring: 28800
+  Damper: 2700
+  ReboundDamper: 3300
+  DriveForce: 16400
   TopSpeed: 25
   ReverseSpeed: 8
   FrontDriveBias: 0
-  BrakeForce: 18500
-  HandbrakeForce: 5300
-  LowSpeedSteer: 38
-  HighSpeedSteer: 15
-  SteerRate: 195
-  LateralStiffness: 1300
-  TireGrip: 1.22
-  HandbrakeRearGrip: 0.31
-  HandbrakeEngageRate: 4.3
-  HandbrakeReleaseRate: 2.9
+  BrakeForce: 23500
+  HandbrakeForce: 7200
+  LowSpeedSteer: 46
+  HighSpeedSteer: 22
+  SteerRate: 425
+  LateralStiffness: 2450
+  TireGrip: 1.12
+  SlidingGrip: 0.74
+  HandbrakeRearGrip: 0.27
+  HandbrakeEngageRate: 8.5
+  HandbrakeReleaseRate: 9.8
+  GravityScale: 1.58
+  AirLevelStrength: 28
+  AirLevelDamping: 9
+  RecoveryDelay: 0.95

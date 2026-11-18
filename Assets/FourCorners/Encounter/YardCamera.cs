@@ -9,7 +9,7 @@ namespace FourCorners
         [SerializeField] private Vector3 viewAngles = new(57, -10, 0);
         [SerializeField] private Vector3 framingBias = new(3.3f, 0, 3.5f);
         [SerializeField, Min(1)] private float viewDistance = 38;
-        [SerializeField, Min(0.01f)] private float followTime = 0.24f;
+        [SerializeField, Min(0.01f)] private float followTime = 0.17f;
         [SerializeField, Min(0)] private float lookAheadTime = 0.32f;
         [SerializeField, Min(0)] private float maxLookAhead = 6;
 
@@ -20,6 +20,7 @@ namespace FourCorners
         {
             target = vehicle;
             focus = target.transform.position + framingBias;
+            focus.y = 0;
             PositionCamera();
         }
 

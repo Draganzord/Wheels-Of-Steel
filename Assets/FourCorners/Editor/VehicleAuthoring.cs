@@ -89,25 +89,34 @@ namespace FourCorners.Editor
             if (truck)
             {
                 settings.Mass = 2880f;
-                settings.CenterOfMass = new Vector3(0f, -0.08f, -0.08f);
-                settings.AntiRoll = 11200f;
+                settings.CenterOfMass = new Vector3(0f, -0.04f, -0.08f);
+                settings.AntiRoll = 7800f;
                 settings.WreckHeight = 1.72f;
                 settings.WheelRadius = 0.53f;
-                settings.RestLength = 0.51f;
-                settings.Extension = 0.18f;
-                settings.Spring = 57500f;
-                settings.Damper = 7450f;
-                settings.DriveForce = 20200f;
+                settings.RestLength = 0.58f;
+                settings.Extension = 0.22f;
+                settings.Spring = 57000f;
+                settings.Damper = 4800f;
+                settings.ReboundDamper = 5600f;
+                settings.DriveForce = 23100f;
                 settings.TopSpeed = 21.5f;
                 settings.ReverseSpeed = 5.8f;
                 settings.FrontDriveBias = 0.30f;
-                settings.BrakeForce = 28700f;
-                settings.LowSpeedSteer = 32f;
-                settings.HighSpeedSteer = 12.5f;
-                settings.SteerRate = 99f;
-                settings.LateralStiffness = 2200f;
-                settings.TireGrip = 1.06f;
-                settings.HandbrakeRearGrip = 0.66f;
+                settings.BrakeForce = 32000f;
+                settings.HandbrakeForce = 6600f;
+                settings.LowSpeedSteer = 37f;
+                settings.HighSpeedSteer = 17f;
+                settings.SteerRate = 175f;
+                settings.LateralStiffness = 2650f;
+                settings.TireGrip = 1.02f;
+                settings.SlidingGrip = 0.82f;
+                settings.HandbrakeRearGrip = 0.55f;
+                settings.HandbrakeEngageRate = 6f;
+                settings.HandbrakeReleaseRate = 6.6f;
+                settings.GravityScale = 1.42f;
+                settings.AirLevelStrength = 20f;
+                settings.AirLevelDamping = 8f;
+                settings.RecoveryDelay = 1.15f;
             }
 
             AssetDatabase.CreateAsset(settings, path);

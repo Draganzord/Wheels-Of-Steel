@@ -14,6 +14,8 @@ namespace FourCorners
         private InputAction move;
         private InputAction handbrake;
         private InputAction fire;
+        private InputAction launchRocket;
+        private Camera aimCamera;
 
         public void Configure(SalvageEncounter session, InputActionAsset input)
         {
@@ -28,13 +30,17 @@ namespace FourCorners
             move = map.FindAction("Move", true);
             handbrake = map.FindAction("Jump", true);
             fire = map.FindAction("Attack", true);
+            launchRocket = map.FindAction("Interact", true);
         }
+
+        private void Start() => aimCamera = Camera.main;
 
         private void OnEnable()
         {
             move.Enable();
             handbrake.Enable();
             fire.Enable();
+            launchRocket.Enable();
             dropMine.Enable();
             restart.Enable();
         }
@@ -44,6 +50,7 @@ namespace FourCorners
             move.Disable();
             handbrake.Disable();
             fire.Disable();
+            launchRocket.Disable();
             dropMine.Disable();
             restart.Disable();
             if (encounter != null && encounter.Player != null && encounter.Player.Vehicle != null)
@@ -71,6 +78,21 @@ namespace FourCorners
                 encounter.TryFire();
             if (dropMine.WasPressedThisFrame())
                 encounter.TryDropMine();
+            if (launchRocket.WasPressedThisFrame())
+                encounter.TryLaunchRocket(RocketAim());
+        }
+
+        private Vector3 RocketAim()
+        {
+            if (aimCamera != null && Mouse.current != null)
+            {
+                Ray pointer = aimCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+                if (Physics.Raycast(pointer, out RaycastHit hit, 195, ~0, QueryTriggerInteraction.Ignore))
+                    return hit.point;
+            }
+
+            Transform vehicle = encounter.Player.transform;
+            return vehicle.position + vehicle.forward * 18 - Vector3.up * 0.65f;
         }
     }
 }

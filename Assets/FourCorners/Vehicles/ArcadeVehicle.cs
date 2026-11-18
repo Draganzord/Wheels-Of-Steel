@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace FourCorners
 {
-    [DisallowMultipleComponent, RequireComponent(typeof(Rigidbody))]
+    [DisallowMultipleComponent, RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
     public sealed class ArcadeVehicle : MonoBehaviour
     {
         [Serializable]
@@ -25,13 +25,23 @@ namespace FourCorners
         private readonly float[] compression = new float[4];
         private readonly float[] wheelRotation = new float[4];
         private readonly RaycastHit[] groundHits = new RaycastHit[12];
+        private readonly Collider[] recoveryHits = new Collider[24];
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
+        private static readonly Vector3[] RecoveryOffsets =
+        {
+            Vector3.zero, Vector3.right * 1.35f, Vector3.left * 1.35f,
+            Vector3.forward * 1.35f, Vector3.back * 1.35f
+        };
 
+        private BoxCollider hull;
+        private Bounds recoveryBounds;
         private float throttle;
         private float steering;
         private float steerAngle;
         private float handbrakeBlend;
         private bool handbrake;
+        private float lastChassisSupport = float.NegativeInfinity;
+        private float nextRecoveryAttempt;
 
         public Rigidbody Body { get; private set; }
         public VehicleSettings Settings => settings;
@@ -39,6 +49,11 @@ namespace FourCorners
         public WheelContact[] Contacts => contacts;
         public int GroundedWheelCount { get; private set; }
         public float Speed => Body.linearVelocity.magnitude;
+        public float SteeringAngle => steerAngle;
+        public float HandbrakeBlend => handbrakeBlend;
+        public bool IsAirborne { get; private set; }
+        public float OverturnedTime { get; private set; }
+        public int RecoveryCount { get; private set; }
 
         public void Configure(VehicleSettings tuning, WheelMount[] mounts, Collider[] bumpers,
             Renderer[] bodyPaint, Transform panel)
@@ -55,6 +70,16 @@ namespace FourCorners
             Body = GetComponent<Rigidbody>();
             Body.mass = settings.Mass;
             Body.centerOfMass = settings.CenterOfMass;
+            hull = GetComponent<BoxCollider>();
+            recoveryBounds = new Bounds(hull.center, hull.size);
+            foreach (Collider bumper in bumperColliders)
+            {
+                if (bumper is BoxCollider box)
+                {
+                    Vector3 center = transform.InverseTransformPoint(box.transform.TransformPoint(box.center));
+                    recoveryBounds.Encapsulate(new Bounds(center, box.size));
+                }
+            }
         }
 
         public void SetInput(float throttle, float steer, bool handbrake)
@@ -73,9 +98,10 @@ namespace FourCorners
             SetInput(0f, 0f, false);
             Array.Clear(contacts, 0, contacts.Length);
             GroundedWheelCount = 0;
+            IsAirborne = false;
+            OverturnedTime = 0f;
             foreach (Collider bumper in bumperColliders)
                 bumper.enabled = false;
-            var hull = GetComponent<BoxCollider>();
             Vector3 size = hull.size;
             hull.center += Vector3.up * ((settings.WreckHeight - size.y) * 0.5f);
             size.y = settings.WreckHeight;
@@ -102,9 +128,12 @@ namespace FourCorners
             if (IsWreck)
                 return;
 
+            if (Body.useGravity)
+                Body.AddForce(Physics.gravity * (settings.GravityScale - 1f), ForceMode.Acceleration);
+
             float delta = Time.fixedDeltaTime;
             float forwardSpeed = Vector3.Dot(Body.linearVelocity, transform.forward);
-            float speedBlend = Mathf.InverseLerp(4f, settings.TopSpeed * 0.88f, Mathf.Abs(forwardSpeed));
+            float speedBlend = Mathf.InverseLerp(5f, settings.TopSpeed * 0.94f, Mathf.Abs(forwardSpeed));
             float steeringLimit = Mathf.Lerp(settings.LowSpeedSteer, settings.HighSpeedSteer, speedBlend);
             steerAngle = Mathf.MoveTowards(steerAngle, steering * steeringLimit, settings.SteerRate * delta);
             float handbrakeRate = handbrake ? settings.HandbrakeEngageRate : settings.HandbrakeReleaseRate;
@@ -117,6 +146,7 @@ namespace FourCorners
 
             ApplyAntiRoll(0, 1);
             ApplyAntiRoll(2, 3);
+            UpdateAttitude(delta);
         }
 
         private void StepWheel(int index, bool braking, float delta)
@@ -126,7 +156,7 @@ namespace FourCorners
             float angle = isFront ? steerAngle : 0f;
             float reach = settings.RestLength + settings.Extension;
             Vector3 origin = transform.TransformPoint(wheel.Anchor);
-            if (!FindGround(origin, reach + settings.WheelRadius, out RaycastHit hit))
+            if (!FindGround(origin, transform.up, reach + settings.WheelRadius, out RaycastHit hit))
             {
                 contacts[index] = default;
                 compression[index] = 0f;
@@ -139,9 +169,11 @@ namespace FourCorners
             float jounce = settings.RestLength - length;
             compression[index] = Mathf.Max(0f, jounce);
             float suspensionVelocity = Vector3.Dot(Body.GetPointVelocity(origin), transform.up);
-            float springLoad = Mathf.Clamp(jounce * settings.Spring - suspensionVelocity * settings.Damper,
-                0f, settings.Mass * Physics.gravity.magnitude * 0.95f);
-            Body.AddForceAtPosition(transform.up * springLoad, hit.point);
+            float damping = suspensionVelocity < 0f ? settings.Damper : settings.ReboundDamper;
+            float bumpStopForce = Mathf.Max(0f, 0.10f - length) * settings.Spring * 2f;
+            float springLoad = Mathf.Clamp(jounce * settings.Spring - suspensionVelocity * damping + bumpStopForce,
+                0f, settings.Mass * Physics.gravity.magnitude * settings.GravityScale);
+            Body.AddForceAtPosition(hit.normal * springLoad, hit.point);
 
             var surface = SurfaceZone.Resolve(hit.collider, hit.point, out float surfaceHeight);
             Vector3 steeredForward = Quaternion.AngleAxis(angle, transform.up) * transform.forward;
@@ -171,8 +203,11 @@ namespace FourCorners
             float rollingForce = springLoad * resistance * Mathf.Clamp01(Mathf.Abs(longitudinalSpeed) * 2f);
             float longitudinal = engineForce - Mathf.Sign(longitudinalSpeed) * Mathf.Min(stoppingForce, brakeDemand + rollingForce);
             float lateral = -lateralSpeed * settings.LateralStiffness * surfaceGrip;
-            lateral = Mathf.Clamp(lateral, -traction * rearGrip, traction * rearGrip);
-            Vector2 tireForce = Vector2.ClampMagnitude(new Vector2(longitudinal, lateral), traction);
+            float demand = new Vector2(longitudinal, lateral / rearGrip).magnitude;
+            float saturation = Mathf.InverseLerp(traction, traction * 2.35f, demand);
+            float availableGrip = Mathf.SmoothStep(traction, traction * settings.SlidingGrip, saturation);
+            float forceScale = Mathf.Min(1f, availableGrip / Mathf.Max(demand, 0.01f));
+            Vector2 tireForce = new Vector2(longitudinal, lateral) * forceScale;
             Body.AddForceAtPosition(wheelForward * tireForce.x + wheelRight * tireForce.y, hit.point);
 
             float brakeSlip = Mathf.InverseLerp(traction * 0.65f, traction * 1.4f, brakeDemand) * Mathf.Abs(longitudinalSpeed);
@@ -192,17 +227,17 @@ namespace FourCorners
             DrawWheel(wheel, index, length, angle, longitudinalSpeed * (1f - 0.86f * handbrakeBlend * (isFront ? 0f : 1f)), delta);
         }
 
-        private bool FindGround(Vector3 origin, float reach, out RaycastHit ground)
+        private bool FindGround(Vector3 origin, Vector3 up, float reach, out RaycastHit ground)
         {
             ground = default;
             float closest = reach;
-            int count = Physics.RaycastNonAlloc(origin, -transform.up, groundHits, reach, groundLayers,
+            int count = Physics.RaycastNonAlloc(origin, -up, groundHits, reach, groundLayers,
                 QueryTriggerInteraction.Ignore);
             for (int index = 0; index < count; index++)
             {
                 RaycastHit candidate = groundHits[index];
                 if (candidate.rigidbody != null || candidate.distance >= closest ||
-                    Vector3.Dot(candidate.normal, transform.up) < 0.35f)
+                    Vector3.Dot(candidate.normal, up) < 0.35f)
                     continue;
 
                 closest = candidate.distance;
@@ -216,9 +251,121 @@ namespace FourCorners
         {
             float balance = (compression[left] - compression[right]) * settings.AntiRoll;
             if (contacts[left].Grounded)
-                Body.AddForceAtPosition(transform.up * balance, contacts[left].Point);
+                Body.AddForceAtPosition(contacts[left].Normal * balance, contacts[left].Point);
             if (contacts[right].Grounded)
-                Body.AddForceAtPosition(-transform.up * balance, contacts[right].Point);
+                Body.AddForceAtPosition(-contacts[right].Normal * balance, contacts[right].Point);
+        }
+
+        private void OnCollisionEnter(Collision collision) => TrackChassisSupport(collision);
+
+        private void OnCollisionStay(Collision collision) => TrackChassisSupport(collision);
+
+        private void TrackChassisSupport(Collision collision)
+        {
+            if (IsWreck || collision.rigidbody != null)
+                return;
+
+            for (int index = 0; index < collision.contactCount; index++)
+            {
+                if (collision.GetContact(index).normal.y >= 0.4f)
+                {
+                    lastChassisSupport = Time.fixedTime;
+                    return;
+                }
+            }
+        }
+
+        private void UpdateAttitude(float delta)
+        {
+            Vector3 up = Body.rotation * Vector3.up;
+            IsAirborne = GroundedWheelCount == 0 && Time.fixedTime - lastChassisSupport > 0.07f;
+            if (IsAirborne)
+            {
+                Quaternion correction = Quaternion.FromToRotation(up, Vector3.up);
+                correction.ToAngleAxis(out float angle, out Vector3 axis);
+                Vector3 tiltVelocity = Vector3.ProjectOnPlane(Body.angularVelocity, Vector3.up);
+                Vector3 torque = axis * (angle * Mathf.Deg2Rad * settings.AirLevelStrength)
+                    - tiltVelocity * settings.AirLevelDamping;
+                Body.AddTorque(Vector3.ClampMagnitude(torque, 35f), ForceMode.Acceleration);
+            }
+
+            bool stranded = !IsAirborne && up.y < 0.18f && Body.linearVelocity.sqrMagnitude < 12.25f
+                && Body.angularVelocity.sqrMagnitude < 2.56f;
+            OverturnedTime = stranded ? OverturnedTime + delta : 0f;
+            if (OverturnedTime < settings.RecoveryDelay || Time.fixedTime < nextRecoveryAttempt)
+                return;
+
+            nextRecoveryAttempt = Time.fixedTime + 0.2f;
+            TryRecover();
+        }
+
+        private void TryRecover()
+        {
+            Vector3 heading = Vector3.ProjectOnPlane(Body.rotation * Vector3.forward, Vector3.up);
+            if (heading.sqrMagnitude < 0.04f)
+                heading = Vector3.Cross(Body.rotation * Vector3.right, Vector3.up);
+            Quaternion upright = Quaternion.LookRotation(heading, Vector3.up);
+
+            foreach (Vector3 offset in RecoveryOffsets)
+            {
+                Vector3 position = Body.position + upright * offset;
+                if (!TrySetRecoveryHeight(ref position, upright) || !HasRecoveryClearance(position, upright))
+                    continue;
+
+                Body.position = position;
+                Body.rotation = upright;
+                Body.linearVelocity = Vector3.zero;
+                Body.angularVelocity = Vector3.zero;
+                Body.WakeUp();
+                Array.Clear(contacts, 0, contacts.Length);
+                Array.Clear(compression, 0, compression.Length);
+                GroundedWheelCount = 0;
+                lastChassisSupport = float.NegativeInfinity;
+                OverturnedTime = 0f;
+                RecoveryCount++;
+                return;
+            }
+        }
+
+        private bool TrySetRecoveryHeight(ref Vector3 position, Quaternion upright)
+        {
+            float highestGround = float.NegativeInfinity;
+            float lowestGround = float.PositiveInfinity;
+            foreach (WheelMount wheel in wheels)
+            {
+                Vector3 footprint = new Vector3(wheel.Anchor.x, 0f, wheel.Anchor.z);
+                Vector3 probe = position + upright * footprint + Vector3.up * 0.85f;
+                if (!FindGround(probe, Vector3.up, 2.8f, out RaycastHit ground)
+                    || ground.normal.y < 0.72f || ground.point.y > Body.position.y + 0.25f)
+                    return false;
+
+                highestGround = Mathf.Max(highestGround, ground.point.y);
+                lowestGround = Mathf.Min(lowestGround, ground.point.y);
+            }
+
+            if (highestGround - lowestGround > 0.45f)
+                return false;
+
+            float load = settings.Mass * Physics.gravity.magnitude * settings.GravityScale / wheels.Length;
+            float compressionAtRest = Mathf.Min(load / settings.Spring, settings.RestLength * 0.68f);
+            position.y = highestGround + settings.RestLength + settings.WheelRadius
+                - compressionAtRest - wheels[0].Anchor.y + 0.06f;
+            return true;
+        }
+
+        private bool HasRecoveryClearance(Vector3 position, Quaternion upright)
+        {
+            Vector3 center = position + upright * recoveryBounds.center;
+            Vector3 padding = new(0.15f, 0.04f, 0.08f);
+            int count = Physics.OverlapBoxNonAlloc(center, recoveryBounds.extents + padding, recoveryHits,
+                upright, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+            for (int index = 0; index < count; index++)
+            {
+                if (recoveryHits[index].attachedRigidbody != Body)
+                    return false;
+            }
+
+            return count < recoveryHits.Length;
         }
 
         private void DrawWheel(WheelMount wheel, int index, float length, float angle, float speed, float delta)

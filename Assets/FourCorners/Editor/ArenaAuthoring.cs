@@ -36,6 +36,9 @@ namespace FourCorners.Editor
             BuildSalvage(Group(yard, "02 | Fork and salvage inventory"));
             layout.Fence = BuildBreach(Group(yard, "03 | Sandy bank and breach"));
             BuildScenery(Group(yard, "04 | Desert perimeter"), road);
+            BuildWayfinding(Group(yard, "Route signs and markers"));
+            AddSalvageRamps(layout, profiles);
+            ConfigureDestruction(layout);
 
             Transform routes = Group(yard, "05 | Race lines and spawn markers");
             layout.PlayerSpawn = Marker(routes, "Player spawn", new(-29, -23), 0.71f, 35f);
