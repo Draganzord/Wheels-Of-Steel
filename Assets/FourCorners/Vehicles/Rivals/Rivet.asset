@@ -22,7 +22,7 @@ MonoBehaviour:
   Spring: 27000
   Damper: 2700
   ReboundDamper: 3300
-  DriveForce: 14100
+  DriveForce: 17100
   TopSpeed: 22.5
   ReverseSpeed: 8
   FrontDriveBias: 0
@@ -30,7 +30,7 @@ MonoBehaviour:
   HandbrakeForce: 7200
   LowSpeedSteer: 42
   HighSpeedSteer: 20
-  SteerRate: 360
+  SteerRate: 400
   LateralStiffness: 2290
   TireGrip: 1.12
   SlidingGrip: 0.74

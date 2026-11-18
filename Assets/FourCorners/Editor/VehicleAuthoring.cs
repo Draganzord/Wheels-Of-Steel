@@ -98,7 +98,7 @@ namespace FourCorners.Editor
                 settings.Spring = 57000f;
                 settings.Damper = 4800f;
                 settings.ReboundDamper = 5600f;
-                settings.DriveForce = 23100f;
+                settings.DriveForce = 27600f;
                 settings.TopSpeed = 21.5f;
                 settings.ReverseSpeed = 5.8f;
                 settings.FrontDriveBias = 0.30f;
@@ -106,7 +106,7 @@ namespace FourCorners.Editor
                 settings.HandbrakeForce = 6600f;
                 settings.LowSpeedSteer = 37f;
                 settings.HighSpeedSteer = 17f;
-                settings.SteerRate = 175f;
+                settings.SteerRate = 205f;
                 settings.LateralStiffness = 2650f;
                 settings.TireGrip = 1.02f;
                 settings.SlidingGrip = 0.82f;

@@ -183,7 +183,7 @@ namespace FourCorners
 
             bool stuck = Mathf.Abs(speed) < 1.15f && (blocked || Mathf.Abs(angle) > 97f);
             stalledFor = stuck ? stalledFor + Time.fixedDeltaTime : 0f;
-            if (stalledFor > 0.42f && Time.fixedTime >= reverseUntil && LaneClear(position - forward * 4f))
+            if (stalledFor > 0.32f && Time.fixedTime >= reverseUntil && LaneClear(position - forward * 4f))
             {
                 reverseUntil = Time.fixedTime + 0.82f;
                 reverseSteer = steer > 0f ? -0.8f : 0.8f;

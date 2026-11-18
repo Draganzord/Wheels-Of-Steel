@@ -20,7 +20,7 @@ namespace FourCorners
         [Min(0f)] public float ReboundDamper = 3300f;
 
         [Header("Powertrain")]
-        [Min(0f)] public float DriveForce = 16400f;
+        [Min(0f)] public float DriveForce = 20400f;
         [Min(0.1f)] public float TopSpeed = 25f;
         [Min(0.1f)] public float ReverseSpeed = 8f;
         [Range(0f, 1f)] public float FrontDriveBias;
@@ -30,7 +30,7 @@ namespace FourCorners
         [Header("Tires and steering")]
         [Range(0f, 65f)] public float LowSpeedSteer = 46f;
         [Range(0f, 40f)] public float HighSpeedSteer = 22f;
-        [Min(1f)] public float SteerRate = 425f;
+        [Min(1f)] public float SteerRate = 510f;
         [Min(0f)] public float LateralStiffness = 2450f;
         [Min(0.1f)] public float TireGrip = 1.12f;
         [Range(0.5f, 1f)] public float SlidingGrip = 0.74f;

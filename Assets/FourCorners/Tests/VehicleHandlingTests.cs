@@ -134,6 +134,45 @@ namespace FourCorners.Tests
             Assert.That(speed, Is.LessThan(13f));
         }
 
+        [UnityTest]
+        public IEnumerator CarsGetUpToSpeedQuicklyFromRest()
+        {
+            car.SetInput(1f, 0f, false);
+            truck.SetInput(1f, 0f, false);
+            for (int step = 0; step < 50; step++)
+                yield return PhysicsTick;
+
+            Debug.Log($"One-second launch: muscle car {car.Speed:F1} m/s, truck {truck.Speed:F1} m/s.");
+            Assert.That(car.Speed, Is.GreaterThan(10f));
+            Assert.That(truck.Speed, Is.GreaterThan(8f));
+            Assert.That(car.Speed, Is.GreaterThan(truck.Speed));
+        }
+
+        [UnityTest]
+        public IEnumerator HoldingDriveAfterAWallImpactPeelsTheCarOff()
+        {
+            var wall = new GameObject("Crash test wall");
+            wall.transform.position = CarStart + Vector3.forward * 5f;
+            wall.AddComponent<BoxCollider>().size = new Vector3(16, 2, 0.45f);
+            Physics.SyncTransforms();
+            BeginRoll(car, 8f);
+            car.SetInput(1f, 0f, false);
+            bool hit = false;
+            float clearance = 0;
+            for (int step = 0; step < 100; step++)
+            {
+                yield return PhysicsTick;
+                if (!hit && car.Body.position.z > CarStart.z + 1.8f && car.Speed < 1.5f)
+                    hit = true;
+                if (hit)
+                    clearance = Mathf.Max(clearance, 2.65f - (car.Body.position.z - CarStart.z));
+            }
+
+            Assert.That(hit, Is.True);
+            Assert.That(clearance, Is.GreaterThan(0.5f));
+            Assert.That(Mathf.Abs(HeadingChange(car)), Is.GreaterThan(16f));
+        }
+
         private static float HeadingChange(ArcadeVehicle vehicle)
         {
             Vector3 heading = Vector3.ProjectOnPlane(vehicle.transform.forward, Vector3.up);

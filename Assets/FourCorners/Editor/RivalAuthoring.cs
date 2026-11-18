@@ -89,11 +89,11 @@ namespace FourCorners.Editor
             settings.name = label;
             settings.Mass = gunner ? 1190f : 1070f;
             settings.Spring = gunner ? 27000f : 24500f;
-            settings.DriveForce = gunner ? 14100f : 15100f;
+            settings.DriveForce = gunner ? 17100f : 18500f;
             settings.TopSpeed = gunner ? 22.5f : 26.5f;
             settings.LowSpeedSteer = gunner ? 42f : 50f;
             settings.HighSpeedSteer = gunner ? 20f : 25f;
-            settings.SteerRate = gunner ? 360f : 470f;
+            settings.SteerRate = gunner ? 400f : 530f;
             settings.LateralStiffness = gunner ? 2290f : 2510f;
             AssetDatabase.CreateAsset(settings, path);
             return settings;

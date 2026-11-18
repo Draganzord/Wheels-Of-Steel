@@ -163,7 +163,7 @@ namespace FourCorners
 
             stalledFor = Mathf.Abs(speed) < 1.4f && (blockedClose || Mathf.Abs(angle) > 69)
                 ? stalledFor + Time.fixedDeltaTime : 0;
-            if (stalledFor > 0.55f && Time.fixedTime >= reverseUntil)
+            if (stalledFor > 0.34f && Time.fixedTime >= reverseUntil)
             {
                 reverseUntil = Time.fixedTime + 1.22f;
                 reverseSteering = steering > 0 ? -0.9f : 0.9f;

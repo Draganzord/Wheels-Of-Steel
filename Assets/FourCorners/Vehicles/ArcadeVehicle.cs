@@ -42,6 +42,11 @@ namespace FourCorners
         private bool handbrake;
         private float lastChassisSupport = float.NegativeInfinity;
         private float nextRecoveryAttempt;
+        private float lastBlockingContact = float.NegativeInfinity;
+        private Vector3 blockingNormal;
+        private float blockedTime;
+        private float releaseUntil;
+        private float releasedThrottle;
 
         public Rigidbody Body { get; private set; }
         public VehicleSettings Settings => settings;
@@ -138,18 +143,21 @@ namespace FourCorners
             steerAngle = Mathf.MoveTowards(steerAngle, steering * steeringLimit, settings.SteerRate * delta);
             float handbrakeRate = handbrake ? settings.HandbrakeEngageRate : settings.HandbrakeReleaseRate;
             handbrakeBlend = Mathf.MoveTowards(handbrakeBlend, handbrake ? 1f : 0f, handbrakeRate * delta);
-            bool braking = Mathf.Abs(forwardSpeed) > 1.25f && forwardSpeed * throttle < 0f;
+            float drive = Time.fixedTime < releaseUntil && throttle * releasedThrottle > 0f ? 0f : throttle;
+            bool braking = Mathf.Abs(forwardSpeed) > 0.9f && forwardSpeed * drive < 0f;
+            float launch = 1f - Mathf.InverseLerp(3f, 11f, Mathf.Abs(forwardSpeed));
 
             GroundedWheelCount = 0;
             for (int index = 0; index < wheels.Length; index++)
-                StepWheel(index, braking, delta);
+                StepWheel(index, drive, launch, braking, delta);
 
             ApplyAntiRoll(0, 1);
             ApplyAntiRoll(2, 3);
             UpdateAttitude(delta);
+            ReleaseFromCollision(delta);
         }
 
-        private void StepWheel(int index, bool braking, float delta)
+        private void StepWheel(int index, float drive, float launch, bool braking, float delta)
         {
             WheelMount wheel = wheels[index];
             bool isFront = index < 2;
@@ -188,14 +196,17 @@ namespace FourCorners
             float driveScale = surface != null ? surface.DriveScale : 1f;
             float traction = springLoad * settings.TireGrip * surfaceGrip;
 
-            float axleBias = isFront ? settings.FrontDriveBias : 1f - settings.FrontDriveBias;
-            float speedLimit = throttle >= 0f ? settings.TopSpeed : settings.ReverseSpeed;
-            float engineScale = 1f - Mathf.InverseLerp(speedLimit * 0.77f, speedLimit, longitudinalSpeed * Mathf.Sign(throttle));
-            float engineForce = braking ? 0f : throttle * settings.DriveForce * axleBias * 0.5f * engineScale * driveScale;
+            float frontBias = Mathf.Lerp(settings.FrontDriveBias, Mathf.Max(0.38f, settings.FrontDriveBias), launch * (1f - handbrakeBlend));
+            float axleBias = isFront ? frontBias : 1f - frontBias;
+            float speedLimit = drive >= 0f ? settings.TopSpeed : settings.ReverseSpeed;
+            float engineScale = 1f - Mathf.InverseLerp(speedLimit * 0.77f, speedLimit, longitudinalSpeed * Mathf.Sign(drive));
+            float engineForce = braking ? 0f : drive * settings.DriveForce * axleBias * 0.5f * engineScale * driveScale;
+            float launchLimit = traction * 0.96f;
+            engineForce = Mathf.Lerp(engineForce, Mathf.Clamp(engineForce, -launchLimit, launchLimit), launch * (1f - handbrakeBlend));
             if (!isFront)
                 engineForce *= Mathf.Lerp(1f, 0.26f, handbrakeBlend);
 
-            float brakeDemand = braking ? Mathf.Abs(throttle) * settings.BrakeForce * (isFront ? 0.29f : 0.21f) : 0f;
+            float brakeDemand = braking ? Mathf.Abs(drive) * settings.BrakeForce * (isFront ? 0.29f : 0.21f) : 0f;
             if (!isFront)
                 brakeDemand += settings.HandbrakeForce * handbrakeBlend * 0.5f;
 
@@ -256,23 +267,50 @@ namespace FourCorners
                 Body.AddForceAtPosition(-contacts[right].Normal * balance, contacts[right].Point);
         }
 
-        private void OnCollisionEnter(Collision collision) => TrackChassisSupport(collision);
+        private void OnCollisionEnter(Collision collision) => TrackContacts(collision);
 
-        private void OnCollisionStay(Collision collision) => TrackChassisSupport(collision);
+        private void OnCollisionStay(Collision collision) => TrackContacts(collision);
 
-        private void TrackChassisSupport(Collision collision)
+        private void TrackContacts(Collision collision)
         {
-            if (IsWreck || collision.rigidbody != null)
+            if (IsWreck)
                 return;
 
             for (int index = 0; index < collision.contactCount; index++)
             {
-                if (collision.GetContact(index).normal.y >= 0.4f)
-                {
+                Vector3 normal = collision.GetContact(index).normal;
+                if (collision.rigidbody == null && normal.y >= 0.4f)
                     lastChassisSupport = Time.fixedTime;
-                    return;
-                }
+                if (Mathf.Abs(normal.y) > 0.45f || Mathf.Abs(throttle) < 0.4f
+                    || Vector3.Dot(normal, transform.forward) * Mathf.Sign(throttle) > -0.30f)
+                    continue;
+
+                if (lastBlockingContact < Time.fixedTime)
+                    blockingNormal = Vector3.zero;
+                lastBlockingContact = Time.fixedTime;
+                blockingNormal += Vector3.ProjectOnPlane(normal, Vector3.up);
             }
+        }
+
+        private void ReleaseFromCollision(float delta)
+        {
+            bool pinned = Time.fixedTime >= releaseUntil && Time.fixedTime - lastBlockingContact < 0.065f
+                && GroundedWheelCount >= 2 && transform.up.y > 0.6f && !handbrake
+                && Mathf.Abs(throttle) >= 0.4f && Vector3.ProjectOnPlane(Body.linearVelocity, Vector3.up).sqrMagnitude < 2.25f
+                && Vector3.Dot(blockingNormal.normalized, transform.forward) * Mathf.Sign(throttle) < -0.30f;
+            blockedTime = pinned ? blockedTime + delta : 0f;
+            if (blockedTime < 0.30f)
+                return;
+
+            Vector3 away = blockingNormal.normalized;
+            float side = Mathf.Abs(steering) > 0.15f
+                ? Mathf.Sign(steering * throttle) : Vector3.Dot(away, transform.right) * throttle < -0.05f ? -1f : 1f;
+            Body.AddForce((away + Vector3.ProjectOnPlane(transform.right, Vector3.up) * side * 0.25f) * 2.6f,
+                ForceMode.VelocityChange);
+            Body.AddTorque(Vector3.up * side * 1.9f, ForceMode.VelocityChange);
+            releasedThrottle = throttle;
+            releaseUntil = Time.fixedTime + 0.27f;
+            blockedTime = 0f;
         }
 
         private void UpdateAttitude(float delta)
